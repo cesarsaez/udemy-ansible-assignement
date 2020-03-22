@@ -2,7 +2,7 @@
 
 ## Ansible assignement
 
-As part of the Udemy course **Ansible Advanced - Hands-On - DevOps** course there is an assigment at the end to test your learned skills. Intructor uploaded its solution using GCP here https://github.com/mmumshad/udemy-ansible-assignment
+As part of the Udemy course [Ansible Advanced - Hands-On - DevOps](https://www.udemy.com/course/learn-ansible-advanced/) course there is an assigment at the end to test your learned skills. Intructor uploaded its solution using GCP here https://github.com/mmumshad/udemy-ansible-assignment
 
 In my solution, I'm going to make **use of Azure** as cloud provider running **Centos 8** VMs, therefore we had to adapt all the infra to Azure setting and some packages are different from the instructors solution, specially due Python2 deprecation.
 
