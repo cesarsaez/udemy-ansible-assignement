@@ -7,6 +7,9 @@ As part of the Udemy course [Ansible Advanced - Hands-On - DevOps](https://www.u
 In my solution, I'm going to make **use of Azure** as cloud provider running **Centos 8** VMs, therefore we had to adapt all the infra to Azure setting and some packages are different from the instructors solution, specially due Python2 deprecation.
 
 ## MacOS Catalina, Ansible and Azure
+
+![](https://redislabs.com/wp-content/uploads/2016/11/Microsoft-Azure-logo-200x200-official.png) ![Ansible](https://upload.wikimedia.org/wikipedia/commons/0/05/Ansible_Logo.png) ![Catalina](https://i.blogs.es/2ab5f0/workfeatured-macos-catalina-icon/200_200.jpg)
+
 This combination is not straighforward with the default values. Actually if Ansible was installed using Homebrew (brew install ansible) just remove it from Brew and install it through Pip3 otherwise you will suffer a dependency hell
 ```
 pip3 install ansible \
