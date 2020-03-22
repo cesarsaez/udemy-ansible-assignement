@@ -1,0 +1,12 @@
+  - name: Get Ansible controler public IP to open firewall
+    ipify_facts:
+      timeout: 20
+    register: ansible_server_pub_ip
+    delegate_to: localhost
+
+  - name: Read and register local SSH public key to upload on the Azure public 
+    set_fact:
+      my_public_ssh_key: "{{ item }}"
+    with_file:
+      - "{{ lookup('env','HOME') }}/.ssh/id_rsa.pub"
+    delegate_to: localhost

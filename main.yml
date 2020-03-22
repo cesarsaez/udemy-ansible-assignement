@@ -1,0 +1,51 @@
+---
+- name: "Infrastructure and application deployment"
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+  - name: Ensure infra prerequisites
+    include: infra-prerequisites.yml
+    delegate_to: localhost
+
+  - name: Ensure network prerequisites
+    vars:
+      - ansible_remote_control_ip: "{{ ansible_server_pub_ip['ansible_facts']['ipify_public_ip'] }}"
+    include: network-deployment.yml
+    delegate_to: localhost
+
+  - name: Ensure Load Balancer deployment
+    include: lb-deployment.yml
+    delegate_to: localhost
+
+  - name: Ensure VM deployment
+    vars:
+      - ansible_remote_control_ip: "{{ ansible_server_pub_ip['ansible_facts']['ipify_public_ip'] }}"
+      - my_authorized_key: "{{ my_public_ssh_key }}"
+    include: vm-deployment.yml
+    delegate_to: localhost
+
+
+- name: Ensure DB is setup and configured 
+  hosts: db_servers
+  become: yes
+  become_method: sudo
+  connection: ssh
+  roles:
+  - python
+  - mysql_db
+  tags:
+    - configure
+
+- name: Ensure Application is setup and configured 
+  hosts: web_servers
+  become: yes
+  become_method: sudo
+  connection: ssh
+  roles:
+    - python
+    - flask_web
+  tags:
+    - configure
+
+

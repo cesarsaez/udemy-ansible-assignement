@@ -1,0 +1,21 @@
+rg_name: Udemy-Ansible
+location: westeurope
+vnet_name: mydatacenter
+vnet_prefix: "10.0.0.0/16"
+subnet_name: myappnetwork
+subnet_prefix: "10.0.1.0/24"
+loadbalancer_name: mylb
+loadbalancer_backend_address_pool_name: backendaddrpool0
+nsg_name: myapp-fw
+server_username: azuser
+web_servers_names:
+  - "webserver01"
+  - "webserver02"
+db_servers_names:
+  - "dbserver01"
+application_name: simple-webapp
+db_name: simwebapp
+db_user: simpleappuser
+db_user_password: R3C0rch0li1
+repository: "https://github.com/mmumshad/simple-webapp.git"
+app_directory: "/opt/simple-webapp" # update the role hostvars for MYSQL_DATABASE_HOST

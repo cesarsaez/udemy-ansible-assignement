@@ -1,0 +1,157 @@
+- name: Create public IP address for management
+  azure_rm_publicipaddress:
+    resource_group: "{{ rg_name }}"
+    allocation_method: dynamic
+    name: "{{ item }}-public-ip"
+  with_items:
+    - "{{ web_servers_names }}"
+    - "{{ db_servers_names }}"
+  register: output_ip_address
+
+
+- name: Create a network interface for the WEB servers, attach it to the public IP and to the Load Balancer backend
+  azure_rm_networkinterface:
+    name: "Nic-{{ item }}"
+    resource_group: "{{ rg_name }}"
+    virtual_network: "{{ vnet_name }}"
+    subnet_name: "{{ subnet_name }}"
+    security_group: "{{ nsg_name }}"
+    ip_configurations:
+      - name: default
+        public_ip_address_name: "{{ item }}-public-ip"
+        primary: True
+        load_balancer_backend_address_pools: "{{ lb_result.state.backend_address_pools[0].id }}"
+  with_items:
+    - "{{ web_servers_names }}"
+  tags: nic
+
+- name: Create a network interface for the DB servers, attach it to the public IP 
+  azure_rm_networkinterface:
+    name: "Nic-{{ item }}"
+    resource_group: "{{ rg_name }}"
+    virtual_network: "{{ vnet_name }}"
+    subnet_name: "{{ subnet_name }}"
+    security_group: "{{ nsg_name }}"
+    ip_configurations:
+      - name: default
+        public_ip_address_name: "{{ item }}-public-ip"
+        primary: True
+  with_items:
+    - "{{ db_servers_names }}"
+  tags: nic
+
+- name: Create an availability for the WEB servers
+  azure_rm_availabilityset:
+    name: myAvailabilitySet
+    location: "{{ location }}"
+    resource_group: "{{ rg_name }}"
+  register: my_availabilitySet
+
+
+- name: Create VM for the WEB server
+  azure_rm_virtualmachine:
+    resource_group: "{{ rg_name }}"
+    name: "{{ item }}"
+    vm_size: Standard_DS1_v2
+    availability_set: "{{ my_availabilitySet.state.id }}"
+    ssh_password_enabled: false
+    admin_username: "{{ server_username }}"
+    ssh_public_keys:
+     - path: "/home/{{ server_username }}/.ssh/authorized_keys"
+       key_data: " {{ my_public_ssh_key }}"
+    network_interfaces: "Nic-{{ item }}"
+    os_type: Linux
+    image:
+        offer: CentOS
+        publisher: OpenLogic
+        sku: '8.0'
+        version: latest
+  with_items:
+    - "{{ web_servers_names }}"
+
+- name: Create VM for the DB server
+  azure_rm_virtualmachine:
+    resource_group: "{{ rg_name }}"
+    name: "{{ item }}"
+    vm_size: Standard_DS1_v2
+    ssh_password_enabled: false
+    admin_username: "{{ server_username }}"
+    ssh_public_keys:
+     - path: "/home/{{ server_username }}/.ssh/authorized_keys"
+       key_data: " {{ my_public_ssh_key }}"
+    network_interfaces: "Nic-{{ item }}"
+    os_type: Linux
+    image:
+        offer: CentOS
+        publisher: OpenLogic
+        sku: '8.0'
+        version: latest
+  with_items:
+    - "{{ db_servers_names }}"
+
+
+- name: Get facts for VM Public IPs
+  azure_rm_publicipaddress_info:
+    resource_group: "{{ rg_name }}"
+  register: public_ips
+  tags:
+    - public-ip
+    - configure
+
+- name: "Set public IPs facts"
+  set_fact:
+    vms_ips: "{{ public_ips.publicipaddresses }}"
+  tags: 
+    - public-ip
+    - configure
+
+- name: Show connection details
+  debug:
+    msg: "To connect to server {{ item.name  | replace('-public-ip', '')}}  use: ssh {{ server_username }}@{{ item.ip_address }} "
+  loop: "{{ vms_ips }}"
+  when: item.name is search("server")
+  tags: 
+    - public-ip
+    - configure
+
+- name: Get facts from VM details
+  azure_rm_virtualmachine_info:
+    resource_group: "{{ rg_name }}"
+  register: vm_details
+  tags: 
+    - vm_inventory
+    - configure
+
+- name: "Set VM details facts"
+  set_fact:
+    vm_details_fact: "{{ vm_details.vms }}"
+  tags: 
+    - vm_inventory
+    - configure
+
+
+- name: Add WEB servers to the dynamic in-memory Ansible inventory
+  add_host:
+    hostname: "{{ item.ip_address }}"
+    ansible_ssh_host: "{{ item.name  | replace('-public-ip', '')}}"
+    ansible_user: "{{ server_username }}"
+    groups:
+    - web_servers
+  loop: "{{ vms_ips }}"
+  when: item.name is search("web")
+  tags:
+    - vm_inventory
+    - configure
+
+- name: Add DB servers to the dynamic in-memory Ansible inventory
+  add_host:
+    hostname: "{{ item.name  | replace('-public-ip', '')}}"
+    ansible_ssh_host: "{{ item.ip_address }}"
+    ansible_user: "{{ server_username }}"
+    groups:
+    - db_servers
+  loop: "{{ vms_ips }}"
+  when: item.name is search("db")
+  tags:
+    - vm_inventory
+    - configure
